@@ -1,0 +1,314 @@
+this projects tought me 
+--->how to manage static folder and images in django ?
+-----------------------------------------------------------------------------------------------------------------------------------
+--->django create models and linked with one another using 
+       >foreignkey : it is used to simply linked to models for example 
+            >product and customer are linked using foreignkey in order
+            >suppose i have product and want to attach to delivery guy table then i can use foreign key
+            
+       >OnetoOne field : it is used when i want to have user associated with customer 
+       >manytomany field : one table data can have many attribute and can be done with manytomany
+                              for example the products here have tag which we can choose 1 or many by simply linking to manytomany field
+-----------------------------------------------------------------------------------------------------------------------------------------------
+--->model queries :
+ here i have 
+	 user --> the ones when register and login was made 
+	 customer --> the ones which have the details of customer and is automatically created when user is made
+	 products --> the ones having products details
+	 order-> it orders the customer and products 
+	 
+	 customers = Customer.objects.all() #gives all customers
+	 firstCustomer = Customer.objects.first() # returns the first customer in table
+	 lastCustomer = Customer.objects.last() # returns the last customer in table
+	 customerByName = Customer.objects.get(name='Peter Piper') # returns the customer with name peter piper
+	 customerById = Customer.objects.get(id=4) # returns the customer with id 4
+	 firstCustomer.order_set.all()  # Returns all orders related to customer (firstCustomer variable set above)
+	   # example : i have a customer page which is dynamic and i have customer with its order then first i get the customer id
+	              from url then specify the specific customer there and then use customer.order_set.all() to render all the customer
+	              order data .
+	              
+	order = Order.objects.first() 
+	parentName = order.customer.name # Returns orders customer name: (Query parent model values)
+-----------------------------------------------------------------------------------------------------------------------------------------------
+---> dynamic url --> when u create the dynamic url atfirst the url id will get by {% url 'url_name' value.id %} 
+                     then the id will pass to views and views will query it and render the data into the html page .
+                     for example :
+                     the customer view button pass the url id to urls.py and then it passes to the views and views will have
+                     queries depends on what it is .
+------------------------------------------------------------------------------------------------------------------------------------------
+--> this code {% include 'status.html %} is inside dashboard.html so when i pass the data in dashboard.html and render in status.html
+              it renders cause dashboard belongs to status noww.
+------------------------------------------------------------------------------------------------------------------------------------
+              CRUD django any model data u can make it               
+----------------------------------------------------------------------------------------------------------------------------------------
+--> how to convert the models into form and save the data ( how to update models form ) :
+     1 .at first we need models and then in forms.py we need to
+        have ModelForm (from django.forms import ModelForm)
+     2 . then we make the class :
+            class CustomerForm(ModelForm):
+               class Meta:
+                  model= (whatever the model)
+                  fields='__all__' or ['firstname','lastname']           
+            
+             here we made a class and called CustomerForm and inside class there is class Meta
+             inside Meta there is model=...() and fields=...() .
+           
+           then the form will be complete
+      3 .
+      in views.py 
+        first specify 
+         form=CustomerForm()
+         if request.method=="POST":
+                  form=CustomerForm(request.POST) # here it will post the data in model
+         if form.is_valid():
+         form.save()
+
+---------------------------------------------------------------------------------------------------------         
+--->update the models
+            to update the models first we need to make the dynamic page so pass the id from href to urls and from
+            urls to view . then at first specify the models in which u wanna update and make a form and use instance=your model data
+            for example :
+			    order=Order.objects.get(id=pk)
+			    form=OrderForm(instance=order)
+			    if request.method=="POST":
+				form=OrderForm(request.POST,instance=order)
+				if form.is_valid():
+				    form.save()
+				    return redirect('dashboard')
+			    context={'form':form}
+			    return render(request,'order_form.html',context)     
+			     
+---------------------------------------------------------------------------------------------------------
+---> to delete the models data just say models.delete()
+---------------------------------------------------------------------------------------------------
+---> difference between instance and initial
+   instance will make u chose the specific item u wanna update in form .
+   whenever we write instance it basically fill the data in the form which we had created .
+   
+   example :		    order=Order.objects.get(id=pk)
+			    form=OrderForm(instance=order)
+			    if request.method=="POST":
+				form=OrderForm(request.POST,instance=order)
+				if form.is_valid():
+   
+   with initial u gonna have to choose the model field and equal to current field  and it will have shown in 
+   form
+   example :
+                        customer=Customer.objects.get(id=pk)
+                        form=OrderForm(initial={'customer':customer})   
+------------------------------------------------------------------------------------------------------------------------
+--->inlineformset
+   from django.forms import inlineformset_factory
+   it can make the form with manyy 
+   example :
+   	OrderFormSet = inlineformset_factory(Customer, Order, fields=('product', 'status'), extra=10 )
+	customer = Customer.objects.get(id=pk)
+	formset = OrderFormSet(queryset=Order.objects.none(),instance=customer)
+	#form = OrderForm(initial={'customer':customer})
+	if request.method == 'POST':
+		#print('Printing POST:', request.POST)
+		#form = OrderForm(request.POST)
+		formset = OrderFormSet(request.POST, instance=customer)
+		if formset.is_valid():
+			formset.save()
+			return redirect('/')
+
+	context = {'form':formset}
+	return render(request, 'accounts/order_form.html', context)                     
+ -------------------------------------------------------------------------------------------------------
+django-filter                                 
+              it ca take the models in  search form . we can search the displayed models item 
+              by using the django filter for that model .
+              example :
+                import django_filters
+			from .models import *
+			class OrderFilter(django_filters.FilterSet):
+				class Meta:
+					model=Order
+					fields='__all__'
+				      
+              and just like form in view u can write 
+              filter=OrderFilter(request.POST,queryset=order)
+              order=order.qs
+             
+              1.suppose we wanna get the date equal or greater than orr equal or less than 
+			      we can do that by 
+			      from django_filters import DateFilter,CharFilter
+	          	      start_date=DateFilter(field_name="date_created",lookup_expr='gte')
+			      end_date=DateFilter(field_name="date_created",lookup_expr="lte")
+		2. suppose we wanna filter the character by just typing the names then we can do it by :
+		       from django_filters import DateFilter,CharFilter
+		       	note=CharFilter(field_name="note",lookup_expr="icontains")
+-------------------------------------------------------------------------------------------------------------------------------
+--->so the form we create we can change it by {{form.username}} to only if we want the input of username 
+-----------------------------------------------------------------------
+if request.user.is_authenticated():
+ return redirect('/')
+else:
+  return ()
+  
+this code is for the user who is able to go back to the login page even he is logged in
+-------------------------------------------------------------------------------------------------
+--->User Role Based Permissions & Authentication :
+        add a group to users when created 
+                if form.is_valid():
+                user = form.save()
+                username = form.cleaned_data.get('username')
+                group = Group.objects.get(name='customer')
+                user.groups.add(group)
+                messages.success(request, 'Account was created for ' + username)
+                return redirect('login')
+-----------------------------------------------------------------------------------------------------
+--->
+
+def allowed_users(allowed_roles=[]):
+	def decorator(view_func):
+		def wrapper_func(request, *args, **kwargs):
+
+			group = None
+			if request.user.groups.exists():
+				group = request.user.groups.all()[0].name
+
+			if group in allowed_roles:
+				return view_func(request, *args, **kwargs)
+			else:
+				return HttpResponse('You are not authorized to view this page')
+		return wrapper_func
+	return decorator
+
+def admin_only(view_func):
+	def wrapper_function(request, *args, **kwargs):
+		group = None
+		if request.user.groups.exists():
+			group = request.user.groups.all()[0].name
+
+		if group == 'customer':
+			return redirect('user-page')
+
+		if group == 'admin':
+			return view_func(request, *args, **kwargs)
+
+	return wrapper_function                
+-----------------------------------------------------------------------------------------------------------------
+learn about django permissions , assignment , dennis videos ,signals, userprofile ,
+---------------------------------------------------------------------------------------------------------------
+{% if request.user.is_staff  %}
+-admin
+--------------------------------------------------------------------------------------------------------------------
+--->how to accecss the picture from the models 
+ if we got the user then we just wroite
+			<img class="profile-pic" src="{{ request.user.customer.profile_pic.url }}" >
+   
+----------------------------------------------------------------------------------------------------------------------
+how to solve the error when profile got empty when deleted
+            {% if request.user.customer.profile_pic %}
+			<img class="profile-pic" src="{{ request.user.customer.profile_pic.url }}" >
+            {% else %}
+            <img class="profile-pic" src="" >
+           {% endif %}
+--------------------------------------------------------------------------------------------------------------
+signals :
+ 
+ ---> sender : models which supposed to send the signals
+ ---> instance: actual item or models sending it
+ --->created : checks if it is first created or it is update
+  example : we have User and Customer(models) field
+  in Customer models we have User as a OneToOneField
+  so whenever the User is created we want to have in Customer model the User is associated with it automatically
+  for this we need
+  
+  func_name(sender,created,instance,**kwargs):
+   -----.create(instance=User)
+  post_save.(func_name,sender=User)
+  
+  -----------------------------------------------------------------------------------------------------
+  django documentations reccomends to write signals in different file
+  so we create signals.py and write signals code there
+  but we need to config in apps.py file :
+   class PollsConfig(AppConfig):
+    default_auto_field = 'django.db.models.BigAutoField'
+    name = 'polls'
+    def ready(self):
+        import polls.signals
+  
+  in settings.py :
+  in installed apps :
+      'polls.apps.PollsConfig',
+
+--------------------------------------------------------------------------------------------------
+--->postgres in django 
+ i have previously installed postgres and worked on basic on postgres but got the error now
+ password authentication failed for user proegres
+ to solved the error :
+ sudo -i -u postgres
+ psql
+ ALTER USER postgres PASSWORD 'postgres';
+ 
+ now i create the server group then server and i have seen there is database 1 named postgres
+ i create my own database named customer
+
+To connect django to postgres
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME':  'customer',
+        'USER': 'postgres',
+        'PASSWORD':'bishal10@',
+        'HOST':'localhost',
+        'PORT':'5432'
+    }
+}
+----------------------------------------------------------------------------
+
+
+
+
+
+
+
+
+
+
+
+      
+  
+  
+  
+ 		       	
+		       	
+
+	  
+			
+			      
+ 
+              
+              
+              
+              
+              
+              
+              
+              
+              
+              
+              
+              
+              
+              
+              
+              
+              
+              
+              
+              
+              
+              
+              
+              
+                
+ 
+
+
+                               
+
